@@ -24,8 +24,8 @@ float ypr[] = {0, 0, 0};         // [yaw, pitch, roll]   yaw/pitch/roll containe
 float lastypr[] = {1, 1, 1};
 
 //PID//
-double Output[] = {0, 0, 0}, Setpoint[] = {0, 0, 0};
-double errSum[] = {0, 0, 0}, lastErr[] = {0, 0, 0};
+double Output[] = {0, 0, 0, 0}, Setpoint[] = {0, 0, 0};
+double lastErr[] = {0, 0, 0};
 double kp[] = {1, 1, 1}, ki[] = {0, 0, 0}, kd[] = {0, 0, 0};
 double now = 0 ;
 double startTime = 0;
@@ -188,10 +188,11 @@ void setup() {
 }
 void loop() {
   imu();
+  controls();
   yaw();
   pitch();
   roll();
-  analogWrite(1, 0);
+  analogWrite(1, Output[3]);
   north.write(90 + Output[2] + Output[0]);
   east.write(90 + Output[1] + Output[0]);
   south.write(90 - Output[1] + Output[0]);
@@ -214,15 +215,6 @@ void loop() {
   if (view == 'x' || (ypr[1] * 180 / M_PI) > 45 || (ypr[1] * 180 / M_PI) < -45 || (ypr[2] * 180 / M_PI) > 45 || (ypr[2] * 180 / M_PI) < -45) {
     //terminate();
   }
-  if (view == '6') {
-    Serial.print("XY:\t");
-    Serial.print(analogRead(2) / 511.5 - 1);
-    Serial.print("\t");
-    Serial.println(analogRead(3) / 511.5 - 1);
-  }
-
-  Setpoint[1] = 90 * analogRead(2) / 511.5 - 1;
-  Setpoint[2] = 90 * analogRead(3) / 511.5 - 1;
 }
 
 void imu() {
@@ -289,9 +281,9 @@ void yaw() {
   double deltaTime = (double)(now - lastTime[0]); //time since last calculation
 
   double error = Setpoint[0] - ypr[0] * 180 / M_PI;
-  errSum[0] += (error * deltaTime);
+  double errSum += (error * deltaTime);
   double dErr = (error - lastErr[0]) / deltaTime;
-  Output[0] = kp[0] * error + ki[0] * errSum[0] + kd[0] * dErr;
+  Output[0] = kp[0] * error + ki[0] * errSum + kd[0] * dErr;
   if (Output[0] > 90) {
     Output[0] = 90;
   }
@@ -307,7 +299,7 @@ void yaw() {
     Serial.print("\t");
     Serial.print(kp[0] * error);
     Serial.print("\t");
-    Serial.print(ki[0] * errSum[0]);
+    Serial.print(ki[0] * errSum);
     Serial.print("\t");
     Serial.println(kd[0] * dErr);
   }
@@ -318,9 +310,9 @@ void pitch() {
   double deltaTime = (double)(now - lastTime[1]); //time since last calculation
 
   double error = Setpoint[1] - ypr[1] * 180 / M_PI;
-  errSum[1] += (error * deltaTime);
+  double errSum += (error * deltaTime);
   double dErr = (error - lastErr[1]) / deltaTime;
-  Output[1] = kp[1] * error + ki[1] * errSum[1] + kd[1] * dErr;
+  Output[1] = kp[1] * error + ki[1] * errSum + kd[1] * dErr;
   if (Output[1] > 90) {
     Output[1] = 90;
   }
@@ -336,7 +328,7 @@ void pitch() {
     Serial.print("\t");
     Serial.print(kp[1] * error);
     Serial.print("\t");
-    Serial.print(ki[1] * errSum[1]);
+    Serial.print(ki[1] * errSum);
     Serial.print("\t");
     Serial.println(kd[1] * dErr);
   }
@@ -347,9 +339,9 @@ void roll() {
   double deltaTime = (double)(now - lastTime[2]); //time since last calculation
 
   double error = Setpoint[2] - ypr[2] * 180 / M_PI;
-  errSum[2] += (error * deltaTime);
+  double errSum += (error * deltaTime);
   double dErr = (error - lastErr[2]) / deltaTime;
-  Output[2] = kp[2] * error + ki[2] * errSum[2] + kd[2] * dErr;
+  Output[2] = kp[2] * error + ki[2] * errSum + kd[2] * dErr;
   if (Output[2] > 90) {
     Output[2] = 90;
   }
@@ -365,9 +357,24 @@ void roll() {
     Serial.print("\t");
     Serial.print(kp[2] * error);
     Serial.print("\t");
-    Serial.print(ki[2] * errSum[2]);
+    Serial.print(ki[2] * errSum);
     Serial.print("\t");
     Serial.println(kd[2] * dErr);
+  }
+}
+
+void controls() {
+  Setpoint[0] += (analogRead(4) / 511.5 - 1);
+  Setpoint[1] = 45 * (analogRead(2) / 511.5 - 1);
+  Setpoint[2] = 45 * (analogRead(3) / 511.5 - 1);
+
+  if (view == '6') {
+    Serial.print("XYZ:\t");
+    Serial.print(analogRead(2) / 511.5 - 1);
+    Serial.print("\t");
+    Serial.print(analogRead(3) / 511.5 - 1);
+    Serial.print("\t");
+    Serial.println(analogRead(4) / 511.5 - 1);
   }
 }
 
